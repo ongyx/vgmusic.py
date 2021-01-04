@@ -1,0 +1,25 @@
+[build-system]
+requires = ["flit_core >=2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.metadata]
+module = "vgmusic"
+author = "Ong Yong Xin"
+author-email = "ongyongxin2020+github@gmail.com"
+home-page = "https://github.com/ongyx/vgmusic"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+description-file = "README.md"
+requires-python = ">=3.6"
+requires = [
+    "beautifulsoup4>=4.9.1",
+    "html5lib>=1.1",
+    "requests>=2.24.0",
+]
+
+# CLI coming soon!
+#[tool.flit.scripts]
+#vgmusic = "vgmusic:_main"

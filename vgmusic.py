@@ -4,22 +4,39 @@
 import collections
 import json
 import urllib.parse
+from typing import List, Optional
 
 import bs4
 import requests
 
-__version__ = "0.1.0a"
+__version__ = "0.1.0a0"
 
 VGMUSIC_URL = "https://vgmusic.com"
 BS4_PARSER = "html5lib"
+# parse the 'last updated' info at the end of each page
+TIMESTAMP_FORMAT = "%B %d, %Y at %I:%M %p"
 
 
 def _clean_header(name):
     return name.lower().replace(" ", "_")
 
 
-class VGMusic(collections.abc.MutableMapping):
-    def __init__(self):
+# NOTE: 'system' refers to the game system (NES, SNES, etc.)
+# 'section' refers to the company that made the system (Atari, etc.)
+class VGMusic(collections.UserDict):
+    """VGMusic API.
+
+    Args:
+        force_cache: A list of systems to pre-cache (normally loaded lazily).
+            Defaults to None.
+
+    Attributes:
+        session (requests.Session): The session used to retrieve the listings.
+        soup (bs4.BeautifulSoup): The main index page.
+        data (dict): A map of system names to their info.
+    """
+
+    def __init__(self, force_cache: Optional[List[str]] = None):
         self.session = requests.Session()
         # retrieve the index
         self.soup = self._get_soup(VGMUSIC_URL)
@@ -27,64 +44,96 @@ class VGMusic(collections.abc.MutableMapping):
         self.soup.find("p", class_="menu").decompose()
 
         # build the index
-        self.index = {}
+        self.data = {}
         for section in self.soup.find_all("p", class_="menu"):
             section_name = section.find_previous_sibling(
                 "p", class_="menularge"
             ).text.strip()
 
-            # avoid namespace clash with 'platform' module
-            for _platform in section.find_all("a", href=True):
-                self.index[_platform.text] = {
+            # avoid namespace clash with 'system' module
+            for system in section.find_all("a", href=True):
+                self.data[system.text] = {
                     # url is relative to root
-                    "url": urllib.parse.urljoin(VGMUSIC_URL, _platform["href"]),
+                    "url": urllib.parse.urljoin(VGMUSIC_URL, system["href"]),
                     "section": section_name,
                     # a map of game titles to their songs
                     "titles": collections.defaultdict(list),
                 }
 
+        if force_cache is not None:
+            for system in force_cache:
+                self.__getitem__(system)
+
     def _get_soup(self, *args, **kwargs) -> bs4.BeautifulSoup:
         return bs4.BeautifulSoup(self.session.get(*args, **kwargs).text, BS4_PARSER)
 
-    def __getitem__(self, _platform):
-        if not self.index[_platform]["titles"]:
-            # cache it lazily
-            platform_page = self._get_soup(self.index[_platform]["url"])
+    def __getitem__(self, system):
+        # cache it lazily
+        if not self.data[system]["titles"]:
+
+            system_url = self.data[system]["url"]
+            system_page = self._get_soup(system_url)
+            table = system_page.tbody
 
             # This header specifies the info on each song.
             # We just map it to the 'table row' tags below each title header onwards.
-            header = platform_page.find("tr", class_="header")
             header_names = [
-                _clean_header(h.text) for h in header.find_all("th", class_="header")
+                _clean_header(h.text) for h in table.tr.find_all("th", class_="header")
             ]
 
             # The first two table rows specify the header, we don't need them anymore.
-            header.decompose()
-            # just a blank line below header
-            platform_page.find("tr").decompose()
+            for _ in range(2):
+                table.tr.decompose()
 
-            for row in platform_page.tbody.find_all("tr"):
-                title = row.find_previous_sibling("tr", class_="header").td.a.text
+            title = None
+            for row in table.find_all("tr"):
+
+                if row.get("class", [""])[0] == "header":
+                    title = row.td.a.text
+                    continue
 
                 if not row.get_text(strip=True):
                     # a blank row?
                     continue
 
-                song_info_raw = row.find_all("td")
-                song_info = {k: v.text for k, v in zip(header_names, song_info_raw)}
+                song_info = {}
 
-                # first column is always song title and url (href) as an 'a' tag.
-                song_info["song_url"] = song_info_raw[0].a["href"]
-                # comments will always be the word 'Comments', so replace with url
-                song_info["comments"] = song_info_raw[3].a["href"]
-                song_info["file_size"] = int(song_info["file_size"].split()[0])
+                for header_name, tag in zip(header_names, row.find_all("td")):
 
-                self.index[_platform]["titles"][title].append(song_info)
+                    # Currently, the following headers are used on VGMusic.com.
+                    # song_title: Self-explainatory.
+                    # file_size: Size in bytes.
+                    # sequenced_by: Who created the midi.
+                    # comments: How many comments (does not work when getting HTML)
 
-        return self.index[_platform]
+                    # vgmusic.py adds these headers:
+                    # song_url: Direct URL to the midi file.
+                    # comments_url: Direct URL to the comments page.
+
+                    if header_name in ("song_title", "comments"):
+                        # so we won't end up with 'song_title_url'
+                        normalized = header_name.split("_")[0]
+
+                        song_info[f"{normalized}_url"] = urllib.parse.urljoin(
+                            system_url, tag.a["href"]
+                        )
+                        header_value = tag.text.strip()
+
+                    elif header_name == "file_size":
+                        header_value = int(tag.text.split()[0])
+
+                    else:
+                        header_value = tag.text.strip()
+
+                    song_info[header_name] = header_value
+
+                del song_info["comments"]
+                self.data[system]["titles"][title].append(song_info)
+
+        return super().__getitem__(system)
 
 
 if __name__ == "__main__":
-    mus = VGMusic()
+    mus = VGMusic(force_cache=["Sony PlayStation 4"])
     with open("out.json", mode="w") as f:
-        json.dump(mus.index, f, indent=4)
+        json.dump(mus.data, f, indent=4)
