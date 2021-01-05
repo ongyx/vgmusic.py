@@ -6,10 +6,10 @@ build-backend = "flit_core.buildapi"
 module = "vgmusic"
 author = "Ong Yong Xin"
 author-email = "ongyongxin2020+github@gmail.com"
-home-page = "https://github.com/ongyx/vgmusic"
+home-page = "https://github.com/ongyx/vgmusic.py"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 description-file = "README.md"
@@ -18,6 +18,11 @@ requires = [
     "beautifulsoup4>=4.9.1",
     "html5lib>=1.1",
     "requests>=2.24.0",
+]
+
+[tool.flit.metadata.requires-extra]
+REST = [
+    "flask>=1.1.2"
 ]
 
 # CLI coming soon!
