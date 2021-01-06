@@ -3,11 +3,11 @@
 
 import collections
 import json
-import locale
+import logging
 import re
 import urllib.parse
-from datetime import datetime, timezone
-from typing import List, Optional
+from email.utils import parsedate_to_datetime
+from typing import IO, List, Optional
 
 import bs4
 import requests
@@ -17,24 +17,26 @@ try:
 except ImportError:
     flask = None
 
-__version__ = "0.1.1a0"
+__version__ = "0.1.1a1"
 
 VGMUSIC_URL = "https://vgmusic.com"
 BS4_PARSER = "html5lib"
-# parse the 'last updated' info at the end of each page
-TIMESTAMP_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"
 # parse the indexer version.
 RE_INDEX_VER = re.compile(r"([\d\.]{3,}[^\.])")
 
-# in case you are not in the US or using an English locale.
-locale.setlocale(locale.LC_TIME, "en_US.utf8")
+logging.basicConfig(level=logging.DEBUG, format=" %(levelname)-8s :: %(message)s")
+_log = logging.getLogger(__name__)
 
 
 def _clean_header(name: str) -> str:
     return name.lower().replace(" ", "_")
 
 
-def _parse_song_info(system_url: str, headers: List[str], row: bs4.element.Tag) -> dict:
+def _soup_from_response(response: requests.models.Response) -> bs4.BeautifulSoup:
+    return bs4.BeautifulSoup(response.text, BS4_PARSER)
+
+
+def _parse_song(system_url: str, headers: List[str], row: bs4.Tag) -> dict:
     song_info = {}
     for header_name, tag in zip(headers, row.find_all("td")):
 
@@ -69,12 +71,62 @@ def _parse_song_info(system_url: str, headers: List[str], row: bs4.element.Tag) 
     return song_info
 
 
+def _parse_song_table(system_info: dict, response: requests.models.Response) -> dict:
+    soup = _soup_from_response(response)
+    table = soup.tbody
+
+    system_info["last_updated"] = parsedate_to_datetime(
+        response.headers["Last-Modified"]
+    ).timestamp()
+
+    # we use etag to check for changes (last updated is for client-side)
+    system_info["_etag"] = response.headers["ETag"]
+
+    # indexer version
+    # idk who would actually need this, but still...
+    system_info["indexer_version"] = RE_INDEX_VER.findall(
+        soup.address.get_text(strip=True)
+    )[0]
+
+    # This header specifies the info on each song.
+    # We just map it to the 'table row' tags below each title header onwards.
+    header_names = [
+        _clean_header(h.text) for h in table.tr.find_all("th", class_="header")
+    ]
+
+    # The first two table rows specify the header, we don't need them anymore.
+    for _ in range(2):
+        table.tr.decompose()
+
+    title = None
+    for row in table.find_all("tr"):
+
+        if row.get("class", [""])[0] == "header":
+            # there is no song info, skip
+            title = row.td.a.text
+            continue
+
+        if not row.get_text(strip=True):
+            # a blank row?
+            continue
+
+        system_info["titles"][title].append(
+            _parse_song(response.url, header_names, row)
+        )
+
+    return system_info
+
+
 # NOTE: 'system' refers to the game system (NES, SNES, etc.)
 # 'section' refers to the company that made the system (Atari, etc.)
 class API(collections.UserDict):
     """VGMusic API.
 
     Args:
+        data_file: A file-like object to read the database from
+            (and to write back changes).
+            Must be opened in read-write mode ('rw').
+            Defaults to None.
         force_cache: A list of systems to pre-cache (normally loaded lazily).
             Defaults to None.
 
@@ -86,88 +138,89 @@ class API(collections.UserDict):
 
     def __init__(
         self,
+        data_file: Optional[IO] = None,
         force_cache: Optional[List[str]] = None,
     ):
+        super().__init__()
+
+        _log.debug("initalising api")
+
         self.session = requests.Session()
+
+        # This is used to keep track of which system index needs to be updated.
+        # On the first __getitem__ call for a system, we get the response headers of the
+        # system's index. If the Etag does not match, we update the index.
+        # This is to avoid repeatedly pinging VGMusic every time __getitem__ is used.
+        self._cached = set()
+
         # retrieve the index
-        self.soup, _ = self._get_soup(VGMUSIC_URL)
-        # the first menu element is info, etc.
+        self.soup = _soup_from_response(self.session.get(VGMUSIC_URL))
+
+        # the first menu element is infomation about VGMusic itself.
+        # We don't need it (for now).
         self.soup.find("p", class_="menu").decompose()
 
+        if data_file is not None:
+            _log.debug("loading existing database")
+            try:
+                self.data = json.load(data_file)
+            except json.JSONDecodeError as e:
+                if data_file.read(1) != "":  # blank file
+                    _log.warning("failed to read existing database: %s", e)
+
+            self._file = data_file
+        else:
+            self._file = None
+
         # build the index
-        self.data = {}
         for section in self.soup.find_all("p", class_="menu"):
             section_name = section.find_previous_sibling(
                 "p", class_="menularge"
             ).get_text(strip=True)
 
-            # avoid namespace clash with 'system' module
             for system in section.find_all("a", href=True):
-                self.data[system.text] = {
-                    # url is relative to root
-                    "url": urllib.parse.urljoin(VGMUSIC_URL, system["href"]),
-                    "section": section_name,
-                    # a map of game titles to their songs
-                    "titles": collections.defaultdict(list),
-                }
+
+                # don't overwrite any existing data
+                if system.text not in self.data:
+                    _log.debug("adding system %s", system.text)
+
+                    self.data[system.text] = {
+                        # url is relative to root
+                        "url": urllib.parse.urljoin(VGMUSIC_URL, system["href"]),
+                        # The company which made the system/general catagory.
+                        "section": section_name,
+                        # a map of game titles to their songs
+                        "titles": collections.defaultdict(list),
+                    }
 
         if force_cache is not None:
+            _log.info("forcing preemptive caching for system(s) %s", force_cache)
             for system in force_cache:
                 self.__getitem__(system)
 
-    def _get_soup(self, *args, **kwargs) -> bs4.BeautifulSoup:
-        response = self.session.get(*args, **kwargs)
-        return bs4.BeautifulSoup(response.text, BS4_PARSER), response
+    def _is_outdated(self, system: str, etag: str) -> bool:
+        return self.data[system].get("_etag") != etag
+
+    def _is_cached(self, system: str) -> bool:
+        return system in self._cached and bool(self.data[system]["titles"])
 
     def __getitem__(self, system):
         # cache it lazily
-        if not self.data[system]["titles"]:
+        system_info = self.data[system]
 
-            system_url = self.data[system]["url"]
-            system_page, response = self._get_soup(system_url)
-            table = system_page.tbody
+        if not self._is_cached(system):
 
-            # get last updated
-            self.data[system]["last_updated"] = (
-                datetime.strptime(response.headers["Last-Modified"], TIMESTAMP_FORMAT)
-                .replace(tzinfo=timezone.utc)
-                .timestamp()
-            )
+            response = self.session.get(system_info["url"], stream=True)
 
-            # we use etag (last updated is for client-side)
-            self.data[system]["_etag"] = response.headers["ETag"]
+            if self._is_outdated(system, response.headers["ETag"]):
 
-            # indexer version
-            # idk who would actually need this, but still...
-            self.data[system]["indexer_version"] = RE_INDEX_VER.findall(
-                system_page.address.get_text(strip=True)
-            )[0]
+                # no etag (not cached yet) or there is a new index so update
+                _log.debug("caching %s", system)
+                self.data[system] = _parse_song_table(system_info, response)
+                self._cached.add(system)
 
-            # This header specifies the info on each song.
-            # We just map it to the 'table row' tags below each title header onwards.
-            header_names = [
-                _clean_header(h.text) for h in table.tr.find_all("th", class_="header")
-            ]
-
-            # The first two table rows specify the header, we don't need them anymore.
-            for _ in range(2):
-                table.tr.decompose()
-
-            title = None
-            for row in table.find_all("tr"):
-
-                if row.get("class", [""])[0] == "header":
-                    # there is no song info, skip
-                    title = row.td.a.text
-                    continue
-
-                if not row.get_text(strip=True):
-                    # a blank row?
-                    continue
-
-                self.data[system]["titles"][title].append(
-                    _parse_song_info(system_url, header_names, row)
-                )
+            else:
+                _log.debug("system %s is cached already and up to date", system)
 
         return super().__getitem__(system)
 
@@ -175,6 +228,10 @@ class API(collections.UserDict):
         return self
 
     def __exit__(self, t, v, tb):
+        if self._file is not None:
+            self._file.seek(0)
+            json.dump(self.data, self._file, indent=4)
+
         self.session.close()
 
     def as_json(self, *args, **kwargs):
@@ -182,7 +239,13 @@ class API(collections.UserDict):
 
 
 if __name__ == "__main__":
-    # import argpare
-    with API(force_cache=["Sony PlayStation 4"]) as api:
-        with open("out.json", "w") as f:
-            f.write(api.as_json(indent=4))
+    # import argparse
+
+    outfile = "index.json"
+    # create file if it does not exist
+    with open(outfile, "a"):
+        pass
+
+    with open(outfile, "r+") as f:
+        with API(data_file=f, force_cache=["Sony PlayStation 4"]) as api:
+            pass
