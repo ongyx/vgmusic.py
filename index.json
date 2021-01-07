@@ -1,0 +1,328 @@
+{
+    "NES": {
+        "url": "https://vgmusic.com/music/console/nintendo/nes/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "Game Boy": {
+        "url": "https://vgmusic.com/music/console/nintendo/gameboy/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "SNES": {
+        "url": "https://vgmusic.com/music/console/nintendo/snes/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "N64": {
+        "url": "https://vgmusic.com/music/console/nintendo/n64/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "Virtual Boy": {
+        "url": "https://vgmusic.com/music/console/nintendo/virtualboy/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "GBA": {
+        "url": "https://vgmusic.com/music/console/nintendo/gba/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "GameCube": {
+        "url": "https://vgmusic.com/music/console/nintendo/gamecube/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "Nintendo DS": {
+        "url": "https://vgmusic.com/music/console/nintendo/ds/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "Nintendo 3DS": {
+        "url": "https://vgmusic.com/music/console/nintendo/3ds/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "Nintendo Wii": {
+        "url": "https://vgmusic.com/music/console/nintendo/wii/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "Nintendo Wii U": {
+        "url": "https://vgmusic.com/music/console/nintendo/wiiu/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "Nintendo Switch": {
+        "url": "https://vgmusic.com/music/console/nintendo/switch/",
+        "section": "Nintendo",
+        "titles": {}
+    },
+    "Master System": {
+        "url": "https://vgmusic.com/music/console/sega/master/",
+        "section": "Sega",
+        "titles": {}
+    },
+    "Sega Game Gear": {
+        "url": "https://vgmusic.com/music/console/sega/gamegear/",
+        "section": "Sega",
+        "titles": {}
+    },
+    "Sega Genesis": {
+        "url": "https://vgmusic.com/music/console/sega/genesis/",
+        "section": "Sega",
+        "titles": {}
+    },
+    "Sega CD": {
+        "url": "https://vgmusic.com/music/console/sega/segacd/",
+        "section": "Sega",
+        "titles": {}
+    },
+    "Sega 32x": {
+        "url": "https://vgmusic.com/music/console/sega/32x/",
+        "section": "Sega",
+        "titles": {}
+    },
+    "Sega Saturn": {
+        "url": "https://vgmusic.com/music/console/sega/saturn/",
+        "section": "Sega",
+        "titles": {}
+    },
+    "Sega Dreamcast": {
+        "url": "https://vgmusic.com/music/console/sega/dreamcast/",
+        "section": "Sega",
+        "titles": {}
+    },
+    "Sony PlayStation": {
+        "url": "https://vgmusic.com/music/console/sony/ps1/",
+        "section": "Sony",
+        "titles": {}
+    },
+    "Sony PlayStation 2": {
+        "url": "https://vgmusic.com/music/console/sony/ps2/",
+        "section": "Sony",
+        "titles": {}
+    },
+    "Sony PlayStation 3": {
+        "url": "https://vgmusic.com/music/console/sony/ps3/",
+        "section": "Sony",
+        "titles": {}
+    },
+    "Sony PlayStation 4": {
+        "url": "https://vgmusic.com/music/console/sony/ps4/",
+        "section": "Sony",
+        "titles": {
+            "Persona 5": [
+                {
+                    "song_url": "https://vgmusic.com/music/console/sony/ps4/P5_Rivers_in_the_Desert_by_fakt13.mid",
+                    "song_title": "Rivers In the Desert",
+                    "file_size": 50515,
+                    "sequenced_by": "fakt13",
+                    "comments_url": "https://vgmusic.com/file/5dacdde754533933da0fd42670225b2e.html#disqus_thread"
+                }
+            ],
+            "Sonic Mania": [
+                {
+                    "song_url": "https://vgmusic.com/music/console/sony/ps4/Sonic_Mania_Bonus_Stage.mid",
+                    "song_title": "Bonus Stage (Sonic 3 Special Stage)",
+                    "file_size": 64569,
+                    "sequenced_by": "Bouncy Glow",
+                    "comments_url": "https://vgmusic.com/file/5c21243fa0c454211f8865a76e76185d.html#disqus_thread"
+                },
+                {
+                    "song_url": "https://vgmusic.com/music/console/sony/ps4/Mirage_Saloon_Act_2_Midi.mid",
+                    "song_title": "Mirage Saloon: Act 2 - \"Rogues Gallery\"",
+                    "file_size": 47663,
+                    "sequenced_by": "Bouncy Glow",
+                    "comments_url": "https://vgmusic.com/file/edb2e4942da6c21e410dc48b7ca584b2.html#disqus_thread"
+                },
+                {
+                    "song_url": "https://vgmusic.com/music/console/sony/ps4/Sonic_Mania_-_Press_Garden_Zone_Act_2.mid",
+                    "song_title": "Press Garden Zone: Act 2 - \"Blossom Haze\"",
+                    "file_size": 30403,
+                    "sequenced_by": "Sc00ts",
+                    "comments_url": "https://vgmusic.com/file/af03b5db50471572859bc21abc3dcc72.html#disqus_thread"
+                }
+            ]
+        },
+        "last_updated": 1575113622.0,
+        "_etag": "\"32b3-5988eb7f953a3-gzip\"",
+        "indexer_version": "4.0.3"
+    },
+    "Sony PSP": {
+        "url": "https://vgmusic.com/music/console/sony/psp/",
+        "section": "Sony",
+        "titles": {}
+    },
+    "Xbox": {
+        "url": "https://vgmusic.com/music/console/microsoft/xbox/",
+        "section": "Microsoft",
+        "titles": {}
+    },
+    "Xbox 360": {
+        "url": "https://vgmusic.com/music/console/microsoft/xbox360/",
+        "section": "Microsoft",
+        "titles": {}
+    },
+    "Xbox One": {
+        "url": "https://vgmusic.com/music/console/microsoft/xboxone/",
+        "section": "Microsoft",
+        "titles": {}
+    },
+    "TurboGrafx-16": {
+        "url": "https://vgmusic.com/music/console/nec/tg16/",
+        "section": "NEC",
+        "titles": {}
+    },
+    "Turbo Duo": {
+        "url": "https://vgmusic.com/music/console/nec/tduo/",
+        "section": "NEC",
+        "titles": {}
+    },
+    "SuperGrafx": {
+        "url": "https://vgmusic.com/music/console/nec/sgx/",
+        "section": "NEC",
+        "titles": {}
+    },
+    "PC-FX": {
+        "url": "https://vgmusic.com/music/console/nec/pcfx/",
+        "section": "NEC",
+        "titles": {}
+    },
+    "Neo-Geo": {
+        "url": "https://vgmusic.com/music/console/snk/neogeo/",
+        "section": "SNK",
+        "titles": {}
+    },
+    "Neo-Geo Pocket": {
+        "url": "https://vgmusic.com/music/console/snk/neogeopocket/",
+        "section": "SNK",
+        "titles": {}
+    },
+    "Atari 2600": {
+        "url": "https://vgmusic.com/music/console/atari/2600/",
+        "section": "Atari",
+        "titles": {}
+    },
+    "Atari 7800": {
+        "url": "https://vgmusic.com/music/console/atari/7800/",
+        "section": "Atari",
+        "titles": {}
+    },
+    "Atari Lynx": {
+        "url": "https://vgmusic.com/music/console/atari/lynx/",
+        "section": "Atari",
+        "titles": {}
+    },
+    "Mattel Intellivision": {
+        "url": "https://vgmusic.com/music/console/mattel/intellivision/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Coleco ColecoVision": {
+        "url": "https://vgmusic.com/music/console/coleco/colecovision/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Magnavox Odyssey2": {
+        "url": "https://vgmusic.com/music/console/magnavox/odyssey2/",
+        "section": "Others",
+        "titles": {}
+    },
+    "3DO 3DO": {
+        "url": "https://vgmusic.com/music/console/3do/3do/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Philips CD-i": {
+        "url": "https://vgmusic.com/music/console/philips/cd-i/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Dos & Windows": {
+        "url": "https://vgmusic.com/music/computer/microsoft/windows/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Commodore 64": {
+        "url": "https://vgmusic.com/music/computer/commodore/commodore/",
+        "section": "Others",
+        "titles": {}
+    },
+    "MSX Computer": {
+        "url": "https://vgmusic.com/music/computer/miscellaneous/msx/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Atari Computers": {
+        "url": "https://vgmusic.com/music/computer/atari/atari/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Amiga Computer": {
+        "url": "https://vgmusic.com/music/computer/commodore/amiga/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Amstrad CPC": {
+        "url": "https://vgmusic.com/music/computer/amstrad/amstradcpc/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Apple II": {
+        "url": "https://vgmusic.com/music/computer/apple/appleii/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Apple Macintosh": {
+        "url": "https://vgmusic.com/music/computer/apple/macintosh/",
+        "section": "Others",
+        "titles": {}
+    },
+    "NEC PC-88": {
+        "url": "https://vgmusic.com/music/computer/nec/pc-88/",
+        "section": "Others",
+        "titles": {}
+    },
+    "NEC PC-98": {
+        "url": "https://vgmusic.com/music/computer/nec/pc-98/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Tomy Tutor": {
+        "url": "https://vgmusic.com/music/computer/tomy/tutor/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Sharp X68000": {
+        "url": "https://vgmusic.com/music/computer/sharp/x68000/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Sinclair Spectrum": {
+        "url": "https://vgmusic.com/music/computer/sinclair/spectrum/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Arcade": {
+        "url": "https://vgmusic.com/music/other/miscellaneous/arcade/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Medleys": {
+        "url": "https://vgmusic.com/music/other/miscellaneous/medley/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Piano Only": {
+        "url": "https://vgmusic.com/music/other/miscellaneous/piano/",
+        "section": "Others",
+        "titles": {}
+    },
+    "Comedy & Memes": {
+        "url": "https://vgmusic.com/music/other/miscellaneous/comedy/",
+        "section": "Others",
+        "titles": {}
+    }
+}

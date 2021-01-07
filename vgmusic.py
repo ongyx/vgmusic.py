@@ -7,7 +7,7 @@ import logging
 import re
 import urllib.parse
 from email.utils import parsedate_to_datetime
-from typing import IO, List, Optional
+from typing import Callable, IO, List, Optional
 
 import bs4
 import requests
@@ -17,7 +17,7 @@ try:
 except ImportError:
     flask = None
 
-__version__ = "0.1.1a1"
+__version__ = "0.1.1a2"
 
 VGMUSIC_URL = "https://vgmusic.com"
 BS4_PARSER = "html5lib"
@@ -123,7 +123,7 @@ class API(collections.UserDict):
     """VGMusic API.
 
     Args:
-        data_file: A file-like object to read the database from
+        data_file: A file-like object to read the index from
             (and to write back changes).
             Must be opened in read-write mode ('rw').
             Defaults to None.
@@ -161,12 +161,12 @@ class API(collections.UserDict):
         self.soup.find("p", class_="menu").decompose()
 
         if data_file is not None:
-            _log.debug("loading existing database")
+            _log.debug("loading existing index")
             try:
                 self.data = json.load(data_file)
             except json.JSONDecodeError as e:
                 if data_file.read(1) != "":  # blank file
-                    _log.warning("failed to read existing database: %s", e)
+                    _log.warning("failed to read existing index: %s", e)
 
             self._file = data_file
         else:
@@ -198,6 +198,39 @@ class API(collections.UserDict):
             for system in force_cache:
                 self.__getitem__(system)
 
+    def filter(self, filter_func: Callable[[str, str, dict], bool]) -> List[dict]:
+        """Filter out songs using a function.
+
+        Args:
+            filter_func: The function to filter with.
+                This function must accept three positional arguments
+                (system: str, game: str, song_info: dict), and return True if
+                the song passes the filter, False otherwise.
+
+                Example:
+
+                def a_filter(system, game, song):
+                    # shoutout :3
+                    return game == "Persona 5" and song["sequenced_by"] == "fakt13"
+
+        Returns:
+            A list of songs that passed the filter.
+        """
+
+        filtered = []
+
+        for system, titles in self.data.items():
+            for title, songs in titles.items():
+                for song in songs:
+                    if filter_func(system, title, song):
+                        filtered.append(song)
+
+        return filtered
+
+    def as_json(self, *args, **kwargs):
+        return json.dumps(self.data, *args, **kwargs)
+
+    # Magic/helper methods
     def _is_outdated(self, system: str, etag: str) -> bool:
         return self.data[system].get("_etag") != etag
 
@@ -233,9 +266,6 @@ class API(collections.UserDict):
             json.dump(self.data, self._file, indent=4)
 
         self.session.close()
-
-    def as_json(self, *args, **kwargs):
-        return json.dumps(self.data, *args, **kwargs)
 
 
 if __name__ == "__main__":
