@@ -7,7 +7,7 @@ import logging
 import re
 import urllib.parse
 from email.utils import parsedate_to_datetime
-from typing import Callable, IO, List, Optional
+from typing import Callable, IO, List, Optional, Pattern, Union
 
 import bs4
 import requests
@@ -220,12 +220,56 @@ class API(collections.UserDict):
         filtered = []
 
         for system, titles in self.data.items():
-            for title, songs in titles.items():
+            for title, songs in titles["titles"].items():
                 for song in songs:
                     if filter_func(system, title, song):
                         filtered.append(song)
 
         return filtered
+
+    def filter_by_regex(
+        self,
+        *regexes: Union[str, Pattern],
+        song_info_key: str = "song_title",
+    ) -> List[dict]:
+        """Filter songs from the index by regex.
+
+        Args:
+            regexes: The regex patterns to use (up to three).
+                If less than three patterns are passed, the rest are filled with "".
+                (matches any)
+                May be compiled or un-compiled (as raw strings).
+                The patterns are matched to (system, game, song_info).
+            song_info_key: The key to use to match for song_info.
+                Defaults to 'song_title'.
+
+        Returns:
+            The songs that match the regex(es).
+
+        Raises:
+            ValueError, if there are too many regexes.
+        """
+        regexes = list(regexes)
+
+        if len(regexes) > 3:
+            raise ValueError("too many regexes passed (max: 3)")
+
+        while len(regexes) < 3:
+            regexes.append("")
+
+        def _filter_by_regex(*args):
+            nonlocal regexes
+
+            # use the key's value instead
+            args = list(args)
+            print(args)
+            args[2] = args[2][song_info_key]
+            print(args)
+            return all(
+                bool(re.search(regex, value)) for regex, value in zip(regexes, args)
+            )
+
+        return self.filter(_filter_by_regex)
 
     def as_json(self, *args, **kwargs):
         return json.dumps(self.data, *args, **kwargs)
