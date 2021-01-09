@@ -76,6 +76,7 @@ class API(collections.UserDict):
                 except json.JSONDecodeError as e:
                     if f.read(1) != "":  # blank file
                         _log.warning("failed to read existing index: %s", e)
+                    self.data = {}
 
             self._path = pathlib.Path(index_path)
         else:
