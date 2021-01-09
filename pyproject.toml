@@ -21,10 +21,12 @@ requires = [
 ]
 
 [tool.flit.metadata.requires-extra]
+cli = [
+    "click>=7.1.2"
+]
 REST = [
     "flask>=1.1.2"
 ]
 
-# CLI coming soon!
-#[tool.flit.scripts]
-#vgmusic = "vgmusic:_main"
+[tool.flit.scripts]
+vgmusic = "vgmusic.cli:cli"
