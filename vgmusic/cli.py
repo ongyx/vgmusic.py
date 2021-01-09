@@ -1,6 +1,5 @@
 # coding: utf8
 
-import concurrent.futures
 import functools
 import logging
 import pathlib
@@ -60,8 +59,6 @@ def cli(verbose, no_download, search, key, directory):
     directory = pathlib.Path(directory)
     index = directory / INDEX_FILENAME
 
-    download_func = functools.partial(_download, dry_run=no_download)
-
     if not index.is_file():
         index.write_text("{}")
 
@@ -69,22 +66,9 @@ def cli(verbose, no_download, search, key, directory):
     with API(index_path=index) as api:
         api.force_cache_all()
 
-        songs = (
-            (song["song_url"], directory / f"{song['song_title']}.mid")
-            for song in api.search_by_regex(*search.split("::"), song_info_key=key)
+        api.download_songs(
+            api.search_by_regex(*search.split("::"), song_info_key=key), directory
         )
-
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-
-            futures = {pool.submit(download_func, url): path for url, path in songs}
-            for future in concurrent.futures.as_completed(futures):
-                midi_path = futures[future]
-                midi_data = future.result()
-
-                _log.info("[download] %s", midi_path)
-
-                with midi_path.open("wb") as f:
-                    f.write(midi_data)
 
 
 if __name__ == "__main__":

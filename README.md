@@ -39,8 +39,8 @@ To override this behaviour, use `force_cache` (see [Module Documentation](##modu
 
 ## Backends
 
-The API has two backends: dictionary-like (access from Python code) and a REST-based web interface (through Flask, from elsewhere).
-You can also use it from the command-line (WIP).
+The API has two backends: dictionary-like (access from Python code) and a REST-based web interface (through Flask, from elsewhere) (WIP).
+You can also use it from the command-line.
 
 ### Dictionary/Key
 
@@ -60,6 +60,77 @@ total = sum(len(songs) for songs in api["Nintendo Switch"]["titles"].values())  
 ```
 
 Anything you can do with a dictionary, it's basically possible with this API.
+
+API index format (all URLs are absolute):
+
+```text
+// Any keys starting with '$' are variable.
+{
+    // The system's name
+    "$system_name": {
+        // The system's url, i.e https://www.vgmusic.com/music/console/sony/ps4/
+        "url": ...,
+        // The section's name, i.e Sony
+        "section": ...,
+        // All the titles available for this system
+        "titles": {
+            // The game's name.
+            "$game_name": [
+                // The direct url to the song's MIDI file
+                "song_url": ...,
+                // The song's title
+                "song_title": ...,
+                // The song's file size, in bytes (as an int)
+                "file_size": ...,
+                // Who sequenced the midi
+                "sequenced_by": ...,
+                // url to comments
+                "comments_url": ...,
+            ]
+        },
+        // When the system's page was last updated (as a Unix timestamp as int)
+        "last_updated": ...,
+        // Used to track page revisions
+        "_etag": ...,
+        // Version of the VGMusic indexer.
+        "indexer_version": ...
+    }
+}
+```
+
+### CLI
+
+Install the CLI first:
+
+```text
+pip install vgmusic[cli]
+```
+
+And then run with
+
+```text
+vgmusic
+```
+
+On first run, it might take a while to initally cache all the systems. Maybe grab a cup of tea or two.
+
+Once parsing is done, it will download **all** the MIDI files by default.
+
+To fliter out songs using regex, use the `-s/--search` option:
+
+```text
+vgmusic -s "Sony PlayStation \d::Persona \d::.*"
+```
+
+This downloads all songs from the system `Sony PlayStation \d` and the game `Persona \d` which has any name.
+
+`-s/--search` maps directly to API.search_by_regex().
+
+Help is always useful:
+
+```text
+vgmusic --help
+```
 
 ### REST/Flask
 

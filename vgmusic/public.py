@@ -2,6 +2,7 @@
 """Python API for vgmusic.com."""
 
 import collections
+import concurrent.futures as cfutures
 import json
 import logging
 import pathlib
@@ -37,6 +38,7 @@ class API(collections.UserDict):
             Defaults to True.
 
     Attributes:
+        all_songs (list): A list of all song infos in the index.
         session (requests.Session): The session used to retrieve the listings.
         soup (bs4.BeautifulSoup): The main index page.
         data (dict): A map of system names to their info.
@@ -68,14 +70,14 @@ class API(collections.UserDict):
         self.soup.find("p", class_="menu").decompose()
 
         if index_path is not None:
-            _log.debug("loading existing index")
+            _log.debug("[cache] loading existing index")
 
             with open(index_path) as f:
                 try:
                     self.data = json.load(f)
                 except json.JSONDecodeError as e:
                     if f.read(1) != "":  # blank file
-                        _log.warning("failed to read existing index: %s", e)
+                        _log.warning("[cache] failed to read existing index: %s", e)
                     self.data = {}
 
             self._path = pathlib.Path(index_path)
@@ -92,7 +94,7 @@ class API(collections.UserDict):
 
                 # don't overwrite any existing data
                 if system.text not in self.data:
-                    _log.debug("adding system %s", system.text)
+                    _log.debug("[cache] adding system %s", system.text)
 
                     self.data[system.text] = {
                         # url is relative to root
@@ -112,7 +114,9 @@ class API(collections.UserDict):
             now = datetime.now(timezone.utc)
 
             if last_modified.day == now.day:
-                _log.debug("skipping caching, already recently cached")
+                _log.debug(
+                    "[cache] skipping caching, last cached today at %s", now.isoformat()
+                )
                 self._cached = set(self.data)
 
         if force_cache is not None:
@@ -138,7 +142,7 @@ class API(collections.UserDict):
             try:
                 songtable = utils.SongTable(response)
             except ParseError:
-                pass  # a system with no songs, ignore
+                self.data[system]["titles"] = {}  # a system with no songs, ignore
             else:
                 self.data[system].update(songtable.parse())
 
@@ -161,6 +165,10 @@ class API(collections.UserDict):
     def __exit__(self, t, v, tb):
         self.close()
 
+    @property
+    def all_songs(self):
+        return self.search(lambda *args: True)
+
     def as_json(self, *args, **kwargs) -> str:
         return json.dumps(self.data, *args, **kwargs)
 
@@ -170,6 +178,49 @@ class API(collections.UserDict):
                 json.dump(self.data, f, indent=4)
 
         self.session.close()
+
+    def _download_song(self, url: str) -> bytes:
+        with self.session.get(url) as response:
+            return response.content
+
+    def download_songs(
+        self, songs: List[dict], path: Optional[pathlib.Path] = None
+    ) -> None:
+        """Download songs to disk.
+
+        Args:
+            songs: The songs to download.
+                The output of .search() and .search_by_regex() is suitable for this.
+            path: Where to download the songs to.
+                Defaults to "." (curdir).
+        """
+
+        if path is None:
+            path = pathlib.Path()
+
+        songs_to_download = []
+
+        for song in songs:
+            song_path = path / f"{song['song_title']}.mid"
+            if song_path.is_file():
+                _log.warning("[download] song at %s already exists", song_path)
+            else:
+                songs_to_download.append((song["song_url"], song_path))
+
+        with cfutures.ThreadPoolExecutor() as pool:
+
+            futures = {
+                pool.submit(self._download_song, url): path
+                for url, path in songs_to_download
+            }
+            for future in cfutures.as_completed(futures):
+                midi_path = futures[future]
+                midi_data = future.result()
+
+                _log.info("[download] %s", midi_path)
+
+                with midi_path.open("wb") as f:
+                    f.write(midi_data)
 
     def force_cache_all(self) -> None:
         """Cache songs for all systems.
