@@ -5,7 +5,6 @@ import logging
 import pathlib
 
 import click
-import requests
 from vgmusic.public import API
 
 click.option = functools.partial(click.option, show_default=True)
@@ -22,12 +21,6 @@ LEVELS = [
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 INDEX_FILENAME = "index.json"
-
-
-def _download(url: str, dry_run: bool = False) -> None:
-    if not dry_run:
-        with requests.get(url) as response:
-            return response.content
 
 
 @click.command()
@@ -66,9 +59,10 @@ def cli(verbose, no_download, search, key, directory):
     with API(index_path=index) as api:
         api.force_cache_all()
 
-        api.download_songs(
-            api.search_by_regex(*search.split("::"), song_info_key=key), directory
-        )
+        if not no_download:
+            api.download_songs(
+                api.search_by_regex(*search.split("::"), song_info_key=key), directory
+            )
 
 
 if __name__ == "__main__":

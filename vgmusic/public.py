@@ -38,7 +38,6 @@ class API(collections.UserDict):
             Defaults to True.
 
     Attributes:
-        all_songs (list): A list of all song infos in the index.
         session (requests.Session): The session used to retrieve the listings.
         soup (bs4.BeautifulSoup): The main index page.
         data (dict): A map of system names to their info.
@@ -124,17 +123,17 @@ class API(collections.UserDict):
             for system in force_cache:
                 self.__getitem__(system)
 
-    def _is_outdated(self, system: str, response: str) -> bool:
-        return self.data[system].get("_etag") != response.headers["ETag"]
-
-    def _is_cached(self, system: str) -> bool:
-        return system in self._cached and self.data[system]["titles"] is not None
-
     def _cache(self, system: str) -> None:
-        # Caches the system requested, ignoring if it already has been cached.
-        response = self.session.get(self.data[system]["url"], stream=True)
 
-        if self._is_outdated(system, response):
+        if system in self._cached:
+            return
+
+        system_info = self.data[system]
+
+        # Caches the system requested, ignoring if it already has been cached.
+        response = self.session.get(system_info["url"], stream=True)
+
+        if response.headers["ETag"] != system_info.get("_etag"):
 
             # no etag (not cached yet) or there is a new index so update
             _log.debug("caching %s", system)
@@ -154,8 +153,7 @@ class API(collections.UserDict):
     def __getitem__(self, system):
         # To avoid downloading every page for each system,
         # this downloads the page lazily to save bandwidth.
-        if not self._is_cached(system):
-            self._cache(system)
+        self._cache(system)
 
         return super().__getitem__(system)
 
@@ -167,6 +165,7 @@ class API(collections.UserDict):
 
     @property
     def all_songs(self):
+        """All songs in the index."""
         return self.search(lambda *args: True)
 
     def as_json(self, *args, **kwargs) -> str:
@@ -227,8 +226,10 @@ class API(collections.UserDict):
         If you use this, it is recommended to pass the index_path argument to __init__
         so the whole index does not need to be regenerated again.
         """
-        for system in self.data:
-            _ = self.__getitem__(system)
+        with cfutures.ThreadPoolExecutor() as pool:
+            futures = [pool.submit(self._cache, system) for system in self.data]
+            for future in cfutures.as_completed(futures):
+                _ = future.result()
 
     def search(self, search_func: Callable[[str, str, dict], bool]) -> List[dict]:
         """Filter out songs using a function.
