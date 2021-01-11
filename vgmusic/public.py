@@ -106,7 +106,7 @@ class API(collections.UserDict):
                         "titles": None,
                     }
 
-        if check_timestamp:
+        if check_timestamp and self._path is not None:
             last_modified = datetime.fromtimestamp(
                 self._path.stat().st_mtime, timezone.utc
             )

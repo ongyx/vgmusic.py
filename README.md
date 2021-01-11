@@ -37,31 +37,7 @@ with vgmusic.API() as api:
 Note that the API is lazy: It will only retrieve data for a console/system the first time it is queried for it.
 To override this behaviour, use `force_cache` (see [Module Documentation](##module-documentation)).
 
-## Backends
-
-The API has two backends: dictionary-like (access from Python code) and a REST-based web interface (through Flask, from elsewhere) (WIP).
-You can also use it from the command-line.
-
-### Dictionary/Key
-
-To query songs, you have to provide the name of the system/catagory and the game title:
-
-```python
-songs = api["Sony PlayStation 4"]["titles"]["Persona 5"]
-```
-
-You can manipulate the API using standard dictionary methods:
-
-```python
-# list all titles for a system
-titles = list(api["Nintendo Switch"].keys())  # ['Sonic Mania'], as of 5/1/2021
-# count how many songs in total
-total = sum(len(songs) for songs in api["Nintendo Switch"]["titles"].values())  # 12, as of 5/1/2021
-```
-
-Anything you can do with a dictionary, it's basically possible with this API.
-
-API index format (all URLs are absolute):
+## API Specification
 
 ```text
 // Any keys starting with '$' are variable.
@@ -98,6 +74,47 @@ API index format (all URLs are absolute):
 }
 ```
 
+## Backends
+
+The API has two backends: dictionary-like (access from Python code) and a REST-based web interface (through Flask, from elsewhere) (WIP).
+You can also use it from the command-line.
+
+### Dictionary/Key
+
+To query songs, you have to provide the name of the system/catagory and the game title:
+
+```python
+songs = api["Sony PlayStation 4"]["titles"]["Persona 5"]
+```
+
+You can manipulate the API using standard dictionary methods:
+
+```python
+# list all titles for a system
+titles = list(api["Nintendo Switch"].keys())  # ['Sonic Mania'], as of 5/1/2021
+# count how many songs in total
+total = sum(len(songs) for songs in api["Nintendo Switch"]["titles"].values())  # 12, as of 5/1/2021
+```
+
+Anything you can do with a dictionary, it's basically possible with this API.
+
+You can also search using a function and by regex:
+(search_by_regex uses re.search().)
+
+```python
+# Find all songs where system name has "Nintendo", game name has "Mario", and song name is any.
+songs = api.search_by_regex("Nintendo", "Mario", "")
+```
+
+To use another key in song_info for the last regex, use `song_info_key`:
+
+```python
+# Find all songs authored by '!!!!!'
+songs = api.search_by_regex("", "", "^!!!!!$", song_info_key="sequenced_by")
+```
+
+For the keys that can be used, see [API Specification](##api-specification).
+
 ### CLI
 
 Install the CLI first:
@@ -124,7 +141,7 @@ vgmusic -s "Sony PlayStation \d::Persona \d::.*"
 
 This downloads all songs from the system `Sony PlayStation \d` and the game `Persona \d` which has any name.
 
-`-s/--search` maps directly to API.search_by_regex().
+`-s/--search` maps directly to `API.search_by_regex()`.
 
 Help is always useful:
 
@@ -140,6 +157,8 @@ Make sure you have installed the Flask extension:
 ```text
 pip install vgmusic[REST]
 ```
+
+
 
 ## License
 MIT.

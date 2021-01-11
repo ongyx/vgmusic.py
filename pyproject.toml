@@ -25,7 +25,7 @@ cli = [
     "click>=7.1.2"
 ]
 REST = [
-    "flask>=1.1.2"
+    "fastapi>=0.63.0"
 ]
 
 [tool.flit.scripts]
