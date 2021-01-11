@@ -71,13 +71,23 @@ class API(collections.UserDict):
         if index_path is not None:
             _log.debug("[cache] loading existing index")
 
-            with open(index_path) as f:
-                try:
+            try:
+                with open(index_path) as f:
                     self.data = json.load(f)
-                except json.JSONDecodeError as e:
-                    if f.read(1) != "":  # blank file
-                        _log.warning("[cache] failed to read existing index: %s", e)
-                    self.data = {}
+                _log.debug("[cache] loaded existing index")
+
+            except FileNotFoundError:
+                _log.info("[cache] index does not exist, creating")
+                self.data = {}
+                new_file = True
+
+            except json.JSONDecodeError as e:
+                _log.warning("[cache] failed to read existing index: %s", e)
+                self.data = {}
+                new_file = True
+
+            else:
+                new_file = False
 
             self._path = pathlib.Path(index_path)
         else:
@@ -106,7 +116,7 @@ class API(collections.UserDict):
                         "titles": None,
                     }
 
-        if check_timestamp and self._path is not None:
+        if check_timestamp and (self._path is not None) and not new_file:
             last_modified = datetime.fromtimestamp(
                 self._path.stat().st_mtime, timezone.utc
             )
@@ -178,9 +188,13 @@ class API(collections.UserDict):
 
         self.session.close()
 
-    def _download_song(self, url: str) -> bytes:
-        with self.session.get(url) as response:
-            return response.content
+    def _download_song(self, url: str, path: pathlib.Path) -> bytes:
+        with self.session.get(url, stream=True) as response:
+            _log.info("[download] saving %s to %s", url, path)
+            with path.open("wb") as f:
+                # 1Kb chunks
+                for chunk in response.iter_content(chunk_size=1024):
+                    f.write(chunk)
 
     def download_songs(
         self, songs: List[dict], path: Optional[pathlib.Path] = None
@@ -200,7 +214,7 @@ class API(collections.UserDict):
         songs_to_download = []
 
         for song in songs:
-            song_path = path / f"{song['song_title']}.mid"
+            song_path = path / f"{utils.sanitize_filename(song['song_title'])}.mid"
             if song_path.is_file():
                 _log.warning("[download] song at %s already exists", song_path)
             else:
@@ -208,18 +222,13 @@ class API(collections.UserDict):
 
         with cfutures.ThreadPoolExecutor() as pool:
 
-            futures = {
-                pool.submit(self._download_song, url): path
+            futures = [
+                pool.submit(self._download_song, url, path)
                 for url, path in songs_to_download
-            }
+            ]
+
             for future in cfutures.as_completed(futures):
-                midi_path = futures[future]
-                midi_data = future.result()
-
-                _log.info("[download] %s", midi_path)
-
-                with midi_path.open("wb") as f:
-                    f.write(midi_data)
+                _ = future.result()
 
     def force_cache_all(self) -> None:
         """Cache songs for all systems.

@@ -25,7 +25,8 @@ cli = [
     "click>=7.1.2"
 ]
 REST = [
-    "fastapi>=0.63.0"
+    "fastapi>=0.63.0",
+    "uvicorn[standard]>=0.13.3"
 ]
 
 [tool.flit.scripts]

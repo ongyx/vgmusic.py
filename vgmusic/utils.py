@@ -2,6 +2,7 @@
 """Utils used by the vgmusic.py API."""
 
 import collections
+import logging
 import re
 import urllib.parse
 from email.utils import parsedate_to_datetime
@@ -11,13 +12,26 @@ import requests
 
 from vgmusic.exceptions import ParseError
 
+_log = logging.getLogger("vgmusic.py")
+
 BS4_PARSER = "html5lib"
 # parse the indexer version.
 RE_INDEX_VER = re.compile(r"([\d\.]{3,}[^\.])")
 
 
+def _setup_logging(level=logging.DEBUG):
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.basicConfig(level=level, format=" %(levelname)-8s :: %(message)s")
+
+
 def clean_header(name: str) -> str:
     return name.lower().replace(" ", "_")
+
+
+def sanitize_filename(name: str) -> str:
+    return re.sub(
+        "_{2,}", "_", "".join([c if c.isalnum() else "_" for c in name])
+    ).strip("_")
 
 
 def soup_from_response(response: requests.models.Response) -> bs4.BeautifulSoup:

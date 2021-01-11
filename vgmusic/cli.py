@@ -6,6 +6,7 @@ import pathlib
 
 import click
 from vgmusic.public import API
+from vgmusic.utils import _setup_logging
 
 click.option = functools.partial(click.option, show_default=True)
 _log = logging.getLogger("vgmusic.py")
@@ -17,8 +18,6 @@ LEVELS = [
     logging.INFO,
     logging.DEBUG,
 ]
-
-logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 INDEX_FILENAME = "index.json"
 
@@ -47,13 +46,9 @@ INDEX_FILENAME = "index.json"
     help="where to download the midi files and the index.json file (song info) to",
 )
 def cli(verbose, no_download, search, key, directory):
-    logging.basicConfig(level=LEVELS[verbose], format=" %(levelname)-8s :: %(message)s")
-
+    _setup_logging(level=LEVELS[verbose])
     directory = pathlib.Path(directory)
     index = directory / INDEX_FILENAME
-
-    if not index.is_file():
-        index.write_text("{}")
 
     _log.info("[download] starting")
     with API(index_path=index) as api:
