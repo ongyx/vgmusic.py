@@ -289,7 +289,6 @@ class API(collections.UserDict):
             ValueError, if there are too many regexes.
         """
         regexes = list(regexes)
-        _log.debug("searched by regex: %s, %s", regexes, song_info_key)
 
         if len(regexes) > 3:
             raise ValueError("too many regexes passed (max: 3)")

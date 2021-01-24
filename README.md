@@ -98,7 +98,7 @@ total = sum(len(songs) for songs in api["Nintendo Switch"]["titles"].values())  
 
 Anything you can do with a dictionary, it's basically possible with this API.
 
-You can also search using a function and by regex:
+Search using regex:
 (`search_by_regex()` uses `re.search()`.)
 
 ```python
@@ -109,11 +109,21 @@ songs = api.search_by_regex("Nintendo", "Mario", "")
 To use another key in song_info for the last regex, use `song_info_key`:
 
 ```python
-# Find all songs authored by '!!!!!'
-songs = api.search_by_regex("", "", "^!!!!!$", song_info_key="sequenced_by")
+# Find all songs authored by 'some_name'
+songs = api.search_by_regex("", "", "^some_name$", song_info_key="sequenced_by")
 ```
 
 For the keys that can be used, see [API Specification](##api-specification).
+
+More fine-grained search is also possible using `search()`, supplied with a function:
+
+```python
+def search_func(system, game, song):
+    if "Persona" in game:
+        return True
+
+songs = api.search(search_func)
+```
 
 ### CLI
 
@@ -180,8 +190,6 @@ The data returned is in this format:
     "data": ...,
 }
 ```
-
-TODO: GET /search is currently broken.
 
 ## License
 MIT.
