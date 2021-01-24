@@ -29,7 +29,7 @@ class API(collections.UserDict):
     Args:
         index_path: A file path to read the index from
             (and to write back changes).
-            Defaults to None.
+            Defaults to 'index.json'.
         force_cache: A list of systems to pre-cache (normally loaded lazily).
             Defaults to None.
         check_timestamp: Whether or not to skip re-caching if the index was updated
@@ -45,7 +45,7 @@ class API(collections.UserDict):
 
     def __init__(
         self,
-        index_path: Optional[Union[pathlib.Path, str]] = None,
+        index_path: Union[pathlib.Path, str] = "index.json",
         force_cache: Optional[List[str]] = None,
         check_timestamp: bool = True,
     ):
@@ -68,30 +68,27 @@ class API(collections.UserDict):
         # We don't need it (for now).
         self.soup.find("p", class_="menu").decompose()
 
-        if index_path is not None:
-            _log.debug("[cache] loading existing index")
+        _log.debug("[cache] loading existing index")
 
-            try:
-                with open(index_path) as f:
-                    self.data = json.load(f)
-                _log.debug("[cache] loaded existing index")
+        try:
+            with open(index_path) as f:
+                self.data = json.load(f)
+            _log.debug("[cache] loaded existing index")
 
-            except FileNotFoundError:
-                _log.info("[cache] index does not exist, creating")
-                self.data = {}
-                new_file = True
+        except FileNotFoundError:
+            _log.info("[cache] index does not exist, creating")
+            self.data = {}
+            new_file = True
 
-            except json.JSONDecodeError as e:
-                _log.warning("[cache] failed to read existing index: %s", e)
-                self.data = {}
-                new_file = True
+        except json.JSONDecodeError as e:
+            _log.warning("[cache] failed to read existing index: %s", e)
+            self.data = {}
+            new_file = True
 
-            else:
-                new_file = False
-
-            self._path = pathlib.Path(index_path)
         else:
-            self._path = None
+            new_file = False
+
+        self._path = pathlib.Path(index_path)
 
         # build the index
         for section in self.soup.find_all("p", class_="menu"):
@@ -292,6 +289,7 @@ class API(collections.UserDict):
             ValueError, if there are too many regexes.
         """
         regexes = list(regexes)
+        _log.debug("searched by regex: %s, %s", regexes, song_info_key)
 
         if len(regexes) > 3:
             raise ValueError("too many regexes passed (max: 3)")

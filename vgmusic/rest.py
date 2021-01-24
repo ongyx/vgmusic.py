@@ -4,15 +4,16 @@
 import logging
 from typing import Optional
 
-import fastapi
 import uvicorn
+from fastapi import FastAPI
 
 import vgmusic.public
 from vgmusic.utils import _setup_logging
 
-app = fastapi.FastAPI()
+app = FastAPI()
 
-vgapi = vgmusic.public.API("index.json")
+vgapi = vgmusic.public.API()
+vgapi.force_cache_all()
 
 _log = logging.getLogger("vgmusic.py")
 _setup_logging()
@@ -29,11 +30,11 @@ def get_system(system: str):
 
 
 @app.get("/search")
-def get_search(query: str = "", song_info_key: Optional[str] = None):
+def get_search(query: str, song_info_key: Optional[str] = None):
     regex_query = query.split("::")
     song_info_key = song_info_key or "song_title"
     _log.info("[rest] query %s", regex_query)
-    return {"data": vgapi.search_by_regex(*regex_query, song_info_key)}
+    return {"data": vgapi.search_by_regex(*regex_query, song_info_key=song_info_key)}
 
 
 @app.on_event("shutdown")
