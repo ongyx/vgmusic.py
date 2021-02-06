@@ -8,7 +8,7 @@ import click
 from vgmusic.public import API
 from vgmusic.utils import _setup_logging
 
-click.option = functools.partial(click.option, show_default=True)
+click.option = functools.partial(click.option, show_default=True)  # type: ignore
 _log = logging.getLogger("vgmusic.py")
 
 LEVELS = [
@@ -45,7 +45,14 @@ INDEX_FILENAME = "index.json"
     default=".",
     help="where to download the midi files and the index.json file (song info) to",
 )
-def cli(verbose, no_download, search, key, directory):
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    default=False,
+    help="whether or not to re-download existing songs on disk",
+)
+def cli(verbose, no_download, search, key, directory, force):
     _setup_logging(level=LEVELS[verbose])
     directory = pathlib.Path(directory)
     index = directory / INDEX_FILENAME
@@ -56,7 +63,9 @@ def cli(verbose, no_download, search, key, directory):
 
         if not no_download:
             api.download_songs(
-                api.search_by_regex(*search.split("::"), song_info_key=key), directory
+                api.search_by_regex(*search.split("::"), song_info_key=key),
+                directory,
+                force=force,
             )
 
 

@@ -9,7 +9,7 @@ import pathlib
 import re
 import urllib.parse
 from datetime import datetime, timezone
-from typing import Callable, List, Optional, Pattern, Union
+from typing import cast, Callable, List, Optional, Pattern, Union
 
 import requests
 from vgmusic import utils
@@ -185,7 +185,11 @@ class API(collections.UserDict):
 
         self.session.close()
 
-    def _download_song(self, url: str, path: pathlib.Path) -> bytes:
+    def _download_song(self, url: str, path: pathlib.Path, force: bool) -> None:
+
+        if path.is_file() and not force:
+            return
+
         with self.session.get(url, stream=True) as response:
             _log.info("[download] saving %s to %s", url, path)
             with path.open("wb") as f:
@@ -194,7 +198,10 @@ class API(collections.UserDict):
                     f.write(chunk)
 
     def download_songs(
-        self, songs: List[dict], path: Optional[pathlib.Path] = None
+        self,
+        songs: List[dict],
+        path: Optional[pathlib.Path] = None,
+        force: bool = False,
     ) -> None:
         """Download songs to disk.
 
@@ -203,6 +210,8 @@ class API(collections.UserDict):
                 The output of .search() and .search_by_regex() is suitable for this.
             path: Where to download the songs to.
                 Defaults to "." (curdir).
+            force: Whether or not to re-download existing songs on disk (with the same filename).
+                Defaults to False.
         """
 
         if path is None:
@@ -220,7 +229,7 @@ class API(collections.UserDict):
         with cfutures.ThreadPoolExecutor() as pool:
 
             futures = [
-                pool.submit(self._download_song, url, path)
+                pool.submit(self._download_song, url, path, force=force)
                 for url, path in songs_to_download
             ]
 
@@ -288,13 +297,13 @@ class API(collections.UserDict):
         Raises:
             ValueError, if there are too many regexes.
         """
-        regexes = list(regexes)
+        regexes = list(regexes)  # type: ignore
 
         if len(regexes) > 3:
             raise ValueError("too many regexes passed (max: 3)")
 
         while len(regexes) < 3:
-            regexes.append("")
+            regexes.append("")  # type: ignore
 
         def _search_by_regex(*args):
             nonlocal regexes

@@ -6,8 +6,9 @@ import logging
 import re
 import urllib.parse
 from email.utils import parsedate_to_datetime
+from typing import Any, Dict, Union
 
-import bs4
+import bs4  # type: ignore
 import requests
 
 from vgmusic.exceptions import ParseError
@@ -52,7 +53,7 @@ class SongTable:
     """
 
     def __init__(self, response: requests.models.Response):
-        self.info = {
+        self.info: Dict[str, Union[Any, Dict[str, Any]]] = {
             # a map of game titles to their songs
             "titles": collections.defaultdict(list),
         }
@@ -108,7 +109,7 @@ class SongTable:
                 # a blank row?
                 continue
 
-            self.info["titles"][title].append(self._parse_song(row))
+            self.info["titles"][title].append(self._parse_song(row))  # type: ignore
 
         return self.info
 

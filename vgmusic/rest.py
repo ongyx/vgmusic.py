@@ -4,7 +4,7 @@
 import logging
 from typing import Optional
 
-import uvicorn
+import uvicorn  # type: ignore
 from fastapi import FastAPI
 
 import vgmusic.public

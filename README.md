@@ -39,7 +39,7 @@ To override this behaviour, use `force_cache` (see [Module Documentation](##modu
 
 ## API Specification
 
-```text
+```json
 // Any keys starting with '$' are variable.
 {
     // The system's name
@@ -129,24 +129,30 @@ songs = api.search(search_func)
 
 Install the CLI first:
 
-```text
-pip install vgmusic[cli]
+```bash
+$ pip install vgmusic[cli]
 ```
 
 And then run with
 
-```text
-vgmusic
+```bash
+$ vgmusic
 ```
 
 On first run, it might take a while to initally cache all the systems. Maybe grab a cup of tea or two.
 
 Once parsing is done, it will download **all** the MIDI files by default.
 
+Any MIDI files already downloaded will be skipped. To force re-downloading all (not recommended), use the `-f/--force` flag:
+
+```bash
+$ vgmusic -f
+```
+
 To fliter out songs using regex, use the `-s/--search` option:
 
-```text
-vgmusic -s "Sony PlayStation \d::Persona \d::.*"
+```bash
+$ vgmusic -s "Sony PlayStation \d::Persona \d::.*"
 ```
 
 This downloads all songs from the system `Sony PlayStation \d` and the game `Persona \d` which has any name.
@@ -155,8 +161,8 @@ This downloads all songs from the system `Sony PlayStation \d` and the game `Per
 
 Help is always useful:
 
-```text
-vgmusic --help
+```bash
+$ vgmusic --help
 ```
 
 ### REST/fastapi
@@ -164,14 +170,14 @@ vgmusic --help
 **NOTE**: This is WIP, it has not been finished yet.
 Make sure you have installed the REST extension:
 
-```text
-pip install vgmusic[REST]
+```bash
+$ pip install vgmusic[REST]
 ```
 
 and then start the server with
 
-```text
-python3 -m vgmusic.rest
+```bash
+$ python3 -m vgmusic.rest
 ```
 
 Right now, there are two endpoints:
@@ -182,10 +188,8 @@ Right now, there are two endpoints:
 
 The data returned is in this format:
 
-```text
+```json
 {
-    // status code of response
-    "code": ...,
     // the response data
     "data": ...,
 }
