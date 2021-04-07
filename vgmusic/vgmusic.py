@@ -218,6 +218,10 @@ class API(c_abc.Mapping):
                     _log.info("adding %s (%s)", name, url)
                     self._urls[name] = url
 
+    def force_cache(self):
+        for system in self._urls:
+            self[system]
+
     def search(self, criteria: c_abc.Callable[[str, str, Song], bool]) -> List[Song]:
         """Search for songs using criteria.
 
@@ -279,6 +283,9 @@ class API(c_abc.Mapping):
             "systems": {name: system.cache() for name, system in self.systems.items()},
         }
 
+    def close(self):
+        self.session.close()
+
     def __getitem__(self, system):
         if system not in self.systems:
             _log.info("downloading page for %s", system)
@@ -291,6 +298,12 @@ class API(c_abc.Mapping):
 
     def __iter__(self):
         return iter(self.systems)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, t, v, tb):
+        self.close()
 
     def _download(self, system):
         self.systems[system] = System(self._urls[system], session=self.session)

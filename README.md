@@ -35,139 +35,98 @@ with vgmusic.API() as api:
 ```
 
 Note that the API is lazy: It will only retrieve data for a console/system the first time it is queried for it.
-To override this behaviour, use `force_cache` (see [Module Documentation](##module-documentation)).
+To override this behaviour, use `force_cache` (see [Module Documentation](#module-documentation)).
 
-## API Specification
+## Module Documentation
 
-```json
-// Any keys starting with '$' are variable.
-{
-    // The system's name
-    "$system_name": {
-        // The system's url, i.e https://www.vgmusic.com/music/console/sony/ps4/
-        "url": ...,
-        // The section's name, i.e Sony
-        "section": ...,
-        // All the titles available for this system
-        "titles": {
-            // The game's name.
-            "$game_name": [
-                // The direct url to the song's MIDI file
-                "song_url": ...,
-                // The song's title
-                "song_title": ...,
-                // The song's file size, in bytes (as an int)
-                "file_size": ...,
-                // Who sequenced the midi
-                "sequenced_by": ...,
-                // url to comments
-                "comments_url": ...,
-            ]
-        },
-        // When the system's page was last updated (as a Unix timestamp as int)
-        "last_updated": ...,
-        // Used to track page revisions
-        "_etag": ...,
-        // Version of the VGMusic indexer.
-        "indexer_version": ...
-    }
-}
+(Systems are analogous to game consoles, it is just a more general name.)
+
+### `Song`
+
+A dataclass with the following fields:
+
 ```
+@dataclass
+class Song:
+    url: str  # direct link to midi file
+    title: str
+    size: int  # number of bytes of midi file
+    author: str
+    md5: str  # md5 checksum of midi file according to VGMusic
+```
+
+The rest of the fields should be self-explainatory.
+
+### `API[system_name]` (`API.__getitem__(system_name)`)
+
+Return a `System` object (collection of songs per each game.)
+The system's name is the same as in VGMusic (i.e NES, SNES, etc.)
+
+`System` objects support indexing over their games, so you can do this:
+
+```python
+game = api["Nintendo Switch"]["Sonic Mania"]  # get a list of Songs for a specific system and game
+```
+
+You can also use standard dictionary methods:
+
+```python
+system = api["Nintendo Switch"]
+
+# list all titles for a system
+titles = list(system.keys())
+# count how many songs/games in total
+total_games, total_songs = system.total()
+
+# ...and of course, how many songs in a game
+total_game_songs = len(game)
+```
+
+### `len(API)`
+
+Return the number of systems in VGMusic.
+
+### `API.search(criteria)`
+
+Return a list of songs according to criteria.
+
+`criteria`: a function with type signature `def criteria(system_name, game_name, song) -> bool`
+    where {system,game}_name is self-explainatory, and song is a `Song` object.
+
+Example:
+
+```python
+def criteria(system, game, song):
+    return song.size < 1000  # find all songs below 1 KB
+```
+
+### `API.search_by_regex(**regexes)`
+
+Return a list of songs filtered by regex.
+
+`**regexes`: The regexes to use. If the regex has the key 'system' or 'game',
+    it will be used to filter system name and game name.
+    Regexes with other keys match to fields in the `Song` objects.
+
+Example:
+
+```python
+api.search_by_regex(title="[Bb]attle")  # find all songs with 'Battle' or 'battle' in their titles.
+```
+
+### `API.force_cache()`
+
+Cache all systems preemptively.
+(No further caching will be done on further `API[system]` calls.)
 
 ## Backends
 
 The API has two backends: dictionary-like (access from Python code) and a REST-based web interface (through Flask, from elsewhere) (WIP).
-You can also use it from the command-line.
 
-### Dictionary/Key
+### Using REST/fastapi
 
-To query songs, you have to provide the name of the system/catagory and the game title:
+**NOTE**: This is WIP (need to fix to the new rewrite).
 
-```python
-songs = api["Sony PlayStation 4"]["titles"]["Persona 5"]
-```
-
-You can manipulate the API using standard dictionary methods:
-
-```python
-# list all titles for a system
-titles = list(api["Nintendo Switch"].keys())  # ['Sonic Mania'], as of 5/1/2021
-# count how many songs in total
-total = sum(len(songs) for songs in api["Nintendo Switch"]["titles"].values())  # 12, as of 5/1/2021
-```
-
-Anything you can do with a dictionary, it's basically possible with this API.
-
-Search using regex:
-(`search_by_regex()` uses `re.search()`.)
-
-```python
-# Find all songs where system name has "Nintendo", game name has "Mario", and song name is any.
-songs = api.search_by_regex("Nintendo", "Mario", "")
-```
-
-To use another key in song_info for the last regex, use `song_info_key`:
-
-```python
-# Find all songs authored by 'some_name'
-songs = api.search_by_regex("", "", "^some_name$", song_info_key="sequenced_by")
-```
-
-For the keys that can be used, see [API Specification](##api-specification).
-
-More fine-grained search is also possible using `search()`, supplied with a function:
-
-```python
-def search_func(system, game, song):
-    if "Persona" in game:
-        return True
-
-songs = api.search(search_func)
-```
-
-### CLI
-
-Install the CLI first:
-
-```bash
-$ pip install vgmusic[cli]
-```
-
-And then run with
-
-```bash
-$ vgmusic
-```
-
-On first run, it might take a while to initally cache all the systems. Maybe grab a cup of tea or two.
-
-Once parsing is done, it will download **all** the MIDI files by default.
-
-Any MIDI files already downloaded will be skipped. To force re-downloading all (not recommended), use the `-f/--force` flag:
-
-```bash
-$ vgmusic -f
-```
-
-To fliter out songs using regex, use the `-s/--search` option:
-
-```bash
-$ vgmusic -s "Sony PlayStation \d::Persona \d::.*"
-```
-
-This downloads all songs from the system `Sony PlayStation \d` and the game `Persona \d` which has any name.
-
-`-s/--search` maps directly to `API.search_by_regex()`.
-
-Help is always useful:
-
-```bash
-$ vgmusic --help
-```
-
-### REST/fastapi
-
-**NOTE**: This is WIP, it has not been finished yet.
 Make sure you have installed the REST extension:
 
 ```bash
@@ -184,14 +143,14 @@ Right now, there are two endpoints:
 
 * `GET /systems` (array): all available systems
 * `GET /system/{system}` (object): info for a system
-* `GET /search?query=...&song_info_key=...` (array): songs matching the query (see `API.search_by_regex()`)
+* `GET /search?system=...&title=...` (array): songs matching the query (see `API.search_by_regex()`)
 
 The data returned is in this format:
 
 ```json
 {
     // the response data
-    "data": ...,
+    "data": ...
 }
 ```
 
