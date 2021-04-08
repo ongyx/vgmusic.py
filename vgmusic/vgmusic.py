@@ -3,10 +3,13 @@
 
 import collections
 import collections.abc as c_abc
+import concurrent.futures as c_futures
+import hashlib
 import logging
+import pathlib
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urljoin
 
 import bs4
@@ -41,6 +44,11 @@ def _resp2soup(resp):
     return bs4.BeautifulSoup(resp.text, BS4_PARSER)
 
 
+def _escape_filename(name):
+    # space is the only whitespace allowed in filenames
+    return "".join(c for c in name if c.isalnum() or c == " ")
+
+
 @dataclass
 class Song:
     """A song in a game's soundtrack as midi.
@@ -62,6 +70,43 @@ class Song:
     author: str
     md5: str
 
+    def download(
+        self, session: Optional[requests.Session] = None, verify: bool = False
+    ) -> bytes:
+        """Download this song's midi file.
+
+        Args:
+            session: The session to use to download.
+                If not specified, requests.get will be used instead.
+            verify: Whether or not to check if the size and md5 checksum matches the midi file.
+                If not specified, defaults to False.
+
+        Returns:
+            The bytes of the midi file.
+
+        Raises:
+            ValueError, if verify=True and the check failed.
+        """
+
+        if session is None:
+            resp = requests.get(self.url)
+        else:
+            resp = session.get(self.url)
+
+        data = resp.content
+
+        if verify:
+            size = len(data)
+            md5 = hashlib.md5(data).hexdigest()
+
+            if not ((size == self.size) and (md5 == self.md5)):
+                raise ValueError(
+                    f"check failed (expected checksum {self.md5}, {self.size} bytes, "
+                    "got checksum {md5}, {size} bytes)"
+                )
+
+        return data
+
 
 class System(c_abc.Mapping):
     """A collection of songs associated with game titles in a (video game) system.
@@ -69,9 +114,9 @@ class System(c_abc.Mapping):
     Args:
         url: The absolute url to the system page.
         session: The session used to download the page.
-            If not specified, a new session is created.
-        cache: The previously parsed system page.
-            If not specified, the system page will be downloaded and parsed.
+            If not specified, defaults to None (a new session is created).
+        cache: The previously serialised dict from .cache().
+            If not specified, defaults to None.
 
     Attributes:
         url (str): See args.
@@ -190,8 +235,8 @@ class API(c_abc.Mapping):
     Public api to VGMusic.
 
     Args:
-        cache: The previously parsed index page.
-            If not specified, the index page will be downloaded and parsed.
+        cache: The previously serialised dict from .cache().
+            If not specified, defaults to None.
     """
 
     def __init__(self, cache: Optional[dict] = None):
@@ -217,10 +262,6 @@ class API(c_abc.Mapping):
 
                     _log.info("adding %s (%s)", name, url)
                     self._urls[name] = url
-
-    def force_cache(self):
-        for system in self._urls:
-            self[system]
 
     def search(self, criteria: c_abc.Callable[[str, str, Song], bool]) -> List[Song]:
         """Search for songs using criteria.
@@ -272,6 +313,41 @@ class API(c_abc.Mapping):
 
         return self.search(criteria)
 
+    def download(
+        self, songs: List[Song], to: Union[str, pathlib.Path], max_requests: int = 5
+    ):
+        """Download songs to path.
+        Any illegal characters in the song's title are escaped/converted before being used as the filename.
+
+        To download individual songs, use 'Song.download()' instead.
+
+        Args:
+            songs: The list of Song objects to download.
+            to: The directory to download to.
+            max_requests: How many concurrent downloads can happen at the same time.
+                To avoid hitting VGMusic servers too much, it is recommended to not set this higher than 10.
+                If not specified, defaults to 5.
+        """
+
+        to = pathlib.Path(to)
+
+        with c_futures.ThreadPoolExecutor(max_workers=max_requests) as pool:
+
+            futures = {}
+
+            for song in songs:
+
+                future = pool.submit(song.download, session=self.session)
+                filename = f"{_escape_filename(song.title)}.mid"
+
+                futures[future] = filename
+
+            for future in c_futures.as_completed(futures):
+                filename = futures[future]
+
+                with (to / filename).open("wb") as f:
+                    f.write(future.result())
+
     def cache(self) -> dict:
         """Serialise all systems to a dictionary format that can be saved on disk and subsequently loaded.
 
@@ -283,13 +359,18 @@ class API(c_abc.Mapping):
             "systems": {name: system.cache() for name, system in self.systems.items()},
         }
 
+    def force_cache(self):
+        """Pre-emptively cache all system pages (no further lazy caching is done)."""
+        for system in self._urls:
+            self._force_cache(system)
+
     def close(self):
         self.session.close()
 
     def __getitem__(self, system):
         if system not in self.systems:
             _log.info("downloading page for %s", system)
-            self._download(system)
+            self._force_cache(system)
 
         return self.systems[system]
 
@@ -305,5 +386,5 @@ class API(c_abc.Mapping):
     def __exit__(self, t, v, tb):
         self.close()
 
-    def _download(self, system):
+    def _force_cache(self, system):
         self.systems[system] = System(self._urls[system], session=self.session)
