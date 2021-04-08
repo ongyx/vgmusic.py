@@ -10,6 +10,14 @@
 (unofficial) Python API for [VGMusic](https://vgmusic.com).
 This project is in no way affiliated with or sponsered by Mike Newman or any of the staff at VGMusic.
 
+## Caches
+
+vgmusic.py relies heavily on caches to avoid downloading VGMusic pages repeatedly; the CLI auto-caches for you into a `cache.json` file.
+
+An example of a cache file is at the root of this repo; it is a pre-parsed full dump of info
+(direct links, authors, etc.) on all the songs currently on VGMusic.
+It weighs in at ~8.5 MB right now (as JSON; experimentation with msgpack yielded ~5 MB of data.)
+
 ## Usage
 
 Thoughout these examples, we will be using the `API` object as the api:
@@ -36,9 +44,6 @@ with vgmusic.API() as api:
 
 Note that the API is lazy: It will only retrieve data for a console/system the first time it is queried for it.
 To override this behaviour, use `force_cache` (see [Module Documentation](#module-documentation)).
-
-An example of a cache file is at the root of this repo (cache.json); it is a pre-parsed full dump of all the songs currently on VGMusic.
-It weighs in at ~8.5 MB right now (as JSON; experimentation with msgpack yielded ~5 MB of data.)
 
 ## Module Documentation
 
