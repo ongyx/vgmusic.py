@@ -37,6 +37,9 @@ with vgmusic.API() as api:
 Note that the API is lazy: It will only retrieve data for a console/system the first time it is queried for it.
 To override this behaviour, use `force_cache` (see [Module Documentation](#module-documentation)).
 
+An example of a cache file is at the root of this repo (cache.json); it is a pre-parsed full dump of all the songs currently on VGMusic.
+It weighs in at ~8.5 MB right now (as JSON; experimentation with msgpack yielded ~5 MB of data.)
+
 ## Module Documentation
 
 (Systems are analogous to game consoles, it is just a more general name.)
