@@ -7,7 +7,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/vgmusic)
 ![Lines of code](https://img.shields.io/tokei/lines/github/ongyx/vgmusic.py)
 
-(unofficial) Python API for [VGMusic](vgmusic.com).
+(unofficial) Python API for [VGMusic](https://vgmusic.com).
 This project is in no way affiliated with or sponsered by Mike Newman or any of the staff at VGMusic.
 
 ## Usage
@@ -41,11 +41,11 @@ To override this behaviour, use `force_cache` (see [Module Documentation](#modul
 
 (Systems are analogous to game consoles, it is just a more general name.)
 
-### `Song`
+### Song
 
 A dataclass with the following fields:
 
-```
+```python
 @dataclass
 class Song:
     url: str  # direct link to midi file
@@ -57,7 +57,28 @@ class Song:
 
 The rest of the fields should be self-explainatory.
 
-### `API[system_name]` (`API.__getitem__(system_name)`)
+#### Song.download(session=None, verify=False)
+
+Return the downloaded bytes of the song's midi file, optionally using a `requests.Session` object (to download).
+
+If verify is True, the bytes will be compared to the size and md5 checksum provided by VGMusic.
+A mismatch will raise a ValueError.
+
+### API
+
+Public API class to query/download songs.
+
+Optionally, a previously saved cache (from `cache()`) can be passed to __init__ using the 'cache' keyword argument.
+
+It has the following fields:
+
+```python
+class API:
+    session: requests.Session
+    systems: Dict[str, System]  # map of system name to System objects
+```
+
+#### API[system_name]
 
 Return a `System` object (collection of songs per each game.)
 The system's name is the same as in VGMusic (i.e NES, SNES, etc.)
@@ -75,18 +96,20 @@ system = api["Nintendo Switch"]
 
 # list all titles for a system
 titles = list(system.keys())
-# count how many songs/games in total
-total_games, total_songs = system.total()
 
-# ...and of course, how many songs in a game
+# count how many songs in total
+# equivalent to 'sum(len(game) for game in system)'
+total_songs = system.total_songs()
+
+# ...and how many songs in a game
 total_game_songs = len(game)
 ```
 
-### `len(API)`
+#### len(API)
 
 Return the number of systems in VGMusic.
 
-### `API.search(criteria)`
+#### API.search(criteria)
 
 Return a list of songs according to criteria.
 
@@ -100,7 +123,7 @@ def criteria(system, game, song):
     return song.size < 1000  # find all songs below 1 KB
 ```
 
-### `API.search_by_regex(**regexes)`
+#### API.search_by_regex(**regexes)
 
 Return a list of songs filtered by regex.
 
@@ -114,45 +137,31 @@ Example:
 api.search_by_regex(title="[Bb]attle")  # find all songs with 'Battle' or 'battle' in their titles.
 ```
 
-### `API.force_cache()`
+#### API.download(songs, to=".", max_request=5)
+
+Download a list of songs (i.e from `search()` or `search_by_regex()`) to a directory (by default curdir).
+
+#### API.force_cache()
 
 Cache all systems preemptively.
 (No further caching will be done on further `API[system]` calls.)
 
-## Backends
+#### API.close()
 
-The API has two backends: dictionary-like (access from Python code) and a REST-based web interface (through Flask, from elsewhere) (WIP).
+Close the current session.
+Any attempt to access/use the API object after it is closed is **strongly** discouraged.
 
-### Using REST/fastapi
+## CLI
 
-**NOTE**: This is WIP (need to fix to the new rewrite).
+The command-line interface can be used to download MIDI files concurrently (useful for scripting).
 
-Make sure you have installed the REST extension:
+Make sure to install the CLI extra first:
 
-```bash
-$ pip install vgmusic[REST]
+```
+pip install vgmusic[cli]
 ```
 
-and then start the server with
-
-```bash
-$ python3 -m vgmusic.rest
-```
-
-Right now, there are two endpoints:
-
-* `GET /systems` (array): all available systems
-* `GET /system/{system}` (object): info for a system
-* `GET /search?system=...&title=...` (array): songs matching the query (see `API.search_by_regex()`)
-
-The data returned is in this format:
-
-```json
-{
-    // the response data
-    "data": ...
-}
-```
+For more info on how to use the cli, run `vgmusic --help`.
 
 ## License
 MIT.

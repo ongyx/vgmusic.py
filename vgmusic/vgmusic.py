@@ -1,5 +1,4 @@
 # coding: utf8
-"""Unofficial Python API for vgmusic.com."""
 
 import collections
 import collections.abc as c_abc
@@ -9,7 +8,7 @@ import logging
 import pathlib
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urljoin
 
 import bs4
@@ -18,7 +17,6 @@ import requests
 __version__ = "1.0.0"
 
 _log = logging.getLogger("vgmusic")
-logging.basicConfig(level=logging.DEBUG)
 
 # html.parser has problems with vgmusic's table cells.
 BS4_PARSER = "html5lib"
@@ -87,6 +85,8 @@ class Song:
         Raises:
             ValueError, if verify=True and the check failed.
         """
+
+        _log.info("downloading %s", self.url)
 
         if session is None:
             resp = requests.get(self.url)
@@ -157,7 +157,7 @@ class System(c_abc.Mapping):
             self.version = soup.address.text.strip().split()[-1].rstrip(".")
 
             self._parse(soup.table)
-            _log.info("ok (total %s games, %s songs)", *self.total())
+            _log.info("ok (total %s games, %s songs)", len(self), self.total_songs())
 
     def cache(self) -> dict:
         """Serialise all songs to a dictionary format that can be saved on disk and subsequently loaded.
@@ -174,16 +174,10 @@ class System(c_abc.Mapping):
 
         return cache
 
-    def total(self) -> Tuple[int, int]:
-        """Return the total number of games/songs as a two-tuple (games, songs)."""
-        n_games = 0
-        n_songs = 0
+    def total_songs(self) -> int:
+        """Return the total number of songs."""
 
-        for _, songs in self.games.items():
-            n_games += 1
-            n_songs += len(songs)
-
-        return n_games, n_songs
+        return sum(len(game) for game in self)
 
     def __getitem__(self, game):
         return self.games[game]
@@ -237,6 +231,10 @@ class API(c_abc.Mapping):
     Args:
         cache: The previously serialised dict from .cache().
             If not specified, defaults to None.
+
+    Attributes:
+        session: The requests session used to download pages/songs.
+        systems: A map of system names to System objects.
     """
 
     def __init__(self, cache: Optional[dict] = None):
@@ -325,7 +323,7 @@ class API(c_abc.Mapping):
             songs: The list of Song objects to download.
             to: The directory to download to.
             max_requests: How many concurrent downloads can happen at the same time.
-                To avoid hitting VGMusic servers too much, it is recommended to not set this higher than 10.
+                To avoid pinging VGMusic servers too much, it is recommended to set this at 10 or below.
                 If not specified, defaults to 5.
         """
 
@@ -343,6 +341,7 @@ class API(c_abc.Mapping):
                 futures[future] = filename
 
             for future in c_futures.as_completed(futures):
+
                 filename = futures[future]
 
                 with (to / filename).open("wb") as f:
@@ -362,7 +361,7 @@ class API(c_abc.Mapping):
     def force_cache(self):
         """Pre-emptively cache all system pages (no further lazy caching is done)."""
         for system in self._urls:
-            self._force_cache(system)
+            self[system]
 
     def close(self):
         self.session.close()
