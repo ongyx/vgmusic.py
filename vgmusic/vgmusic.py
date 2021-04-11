@@ -47,6 +47,10 @@ def _escape_filename(name):
     return "".join(c for c in name if c.isalnum() or c == " ")
 
 
+def _md5_from_url(url):
+    return RE_INFO_URL.findall(url)[0]
+
+
 @dataclass
 class Song:
     """A song in a game's soundtrack as midi.
@@ -67,6 +71,10 @@ class Song:
     size: int
     author: str
     md5: str
+
+    def cache(self) -> dict:
+        """Serialise all fields in this song to a dictionary representation."""
+        return self.__dict__
 
     def download(
         self, session: Optional[requests.Session] = None, verify: bool = False
@@ -169,7 +177,7 @@ class System(c_abc.Mapping):
         cache: Dict[str, Any] = {"url": self.url, "version": self.version, "games": {}}
 
         for game, songs in self.games.items():
-            serialised = [song.__dict__.copy() for song in songs]
+            serialised = [song.cache() for song in songs]
             cache["games"][game] = serialised
 
         return cache
@@ -219,7 +227,7 @@ class System(c_abc.Mapping):
         title = _title.text.strip()
         size = int(_size.text.split()[0])
         author = _author.text.strip()
-        md5 = RE_INFO_URL.findall(_info.a["href"])[0]
+        md5 = _md5_from_url(_info.a["href"])
 
         return Song(url, title, size, author, md5)
 
@@ -302,9 +310,10 @@ class API(c_abc.Mapping):
             nonlocal re_system
             nonlocal re_game
 
+            fields = song.cache()
+
             field_matches = [
-                re.search(regex, str(song.__dict__[field]))
-                for field, regex in regexes.items()
+                re.search(regex, str(fields[field])) for field, regex in regexes.items()
             ]
 
             return all([re_system.search(system), re_game.search(game), *field_matches])
