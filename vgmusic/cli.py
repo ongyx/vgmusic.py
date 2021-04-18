@@ -9,6 +9,11 @@ import click
 
 from .vgmusic import API
 
+try:
+    from .rest import app
+except ImportError:
+    app = None
+
 _log = logging.getLogger("vgmusic")
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)

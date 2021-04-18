@@ -171,5 +171,17 @@ pip install vgmusic[cli]
 
 For more info on how to use the cli, run `vgmusic --help`.
 
+## REST
+
+Install the rest extension:
+
+```
+pip install vgmusic[rest]
+```
+
+and start the server with `python3 -m vgmusic.rest`.
+
+For docs, visit [here](http://localhost:8000/docs) once you've started the server.
+
 ## License
 MIT.

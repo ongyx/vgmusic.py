@@ -8,7 +8,7 @@ import logging
 import pathlib
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from urllib.parse import urljoin
 
 import bs4
@@ -269,7 +269,7 @@ class API(c_abc.Mapping):
                     _log.info("adding %s (%s)", name, url)
                     self._urls[name] = url
 
-    def search(self, criteria: c_abc.Callable[[str, str, Song], bool]) -> List[Song]:
+    def search(self, criteria: Callable[[str, str, Song], bool]) -> List[Song]:
         """Search for songs using criteria.
 
         Args:
