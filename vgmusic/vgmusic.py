@@ -14,7 +14,7 @@ from urllib.parse import urljoin
 import bs4
 import requests
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 _log = logging.getLogger("vgmusic")
 
