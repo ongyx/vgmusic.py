@@ -28,6 +28,9 @@ rest = [
     "fastapi>=0.63.0",
     "uvicorn[standard]>=0.13.3"
 ]
+doc = [
+    "pydoc-markdown>=3.10.1"
+]
 
 [tool.flit.scripts]
 vgmusic = "vgmusic.cli:cli"

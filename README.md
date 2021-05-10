@@ -16,7 +16,7 @@ vgmusic.py relies heavily on caches to avoid downloading VGMusic pages repeatedl
 
 An example of a cache file is at the root of this repo; it is a pre-parsed full dump of info
 (direct links, authors, etc.) on all the songs currently on VGMusic.
-It weighs in at ~8.5 MB right now (as JSON; experimentation with msgpack yielded ~5 MB of data.)
+It weighs in at 8.5 MB as JSON (6 MB without indentation).
 
 ## Usage
 
@@ -47,117 +47,7 @@ To override this behaviour, use `force_cache` (see [Module Documentation](#modul
 
 ## Module Documentation
 
-(Systems are analogous to game consoles, it is just a more general name.)
-
-### Song
-
-A dataclass with the following fields:
-
-```python
-@dataclass
-class Song:
-    url: str  # direct link to midi file
-    title: str
-    size: int  # number of bytes of midi file
-    author: str
-    md5: str  # md5 checksum of midi file according to VGMusic
-```
-
-The rest of the fields should be self-explainatory.
-
-#### Song.download(session=None, verify=False)
-
-Return the downloaded bytes of the song's midi file, optionally using a `requests.Session` object (to download).
-
-If verify is True, the bytes will be compared to the size and md5 checksum provided by VGMusic.
-A mismatch will raise a ValueError.
-
-### API
-
-Public API class to query/download songs.
-
-Optionally, a previously saved cache (from `cache()`) can be passed to __init__ using the 'cache' keyword argument.
-
-It has the following fields:
-
-```python
-class API:
-    session: requests.Session
-    systems: Dict[str, System]  # map of system name to System objects
-```
-
-#### API[system_name]
-
-Return a `System` object (collection of songs per each game.)
-The system's name is the same as in VGMusic (i.e NES, SNES, etc.)
-
-`System` objects support indexing over their games, so you can do this:
-
-```python
-game = api["Nintendo Switch"]["Sonic Mania"]  # get a list of Songs for a specific system and game
-```
-
-You can also use standard dictionary methods:
-
-```python
-system = api["Nintendo Switch"]
-
-# list all titles for a system
-titles = list(system.keys())
-
-# count how many songs in total
-# equivalent to 'sum(len(game) for game in system)'
-total_songs = system.total_songs()
-
-# ...and how many songs in a game
-total_game_songs = len(game)
-```
-
-#### len(API)
-
-Return the number of systems in VGMusic.
-
-#### API.search(criteria)
-
-Return a list of songs according to criteria.
-
-`criteria`: a function with type signature `def criteria(system_name, game_name, song) -> bool`
-    where {system,game}_name is self-explainatory, and song is a `Song` object.
-
-Example:
-
-```python
-def criteria(system, game, song):
-    return song.size < 1000  # find all songs below 1 KB
-```
-
-#### API.search_by_regex(**regexes)
-
-Return a list of songs filtered by regex.
-
-`**regexes`: The regexes to use. If the regex has the key 'system' or 'game',
-    it will be used to filter system name and game name.
-    Regexes with other keys match to fields in the `Song` objects.
-
-Example:
-
-```python
-api.search_by_regex(title="[Bb]attle")  # find all songs with 'Battle' or 'battle' in their titles.
-```
-
-#### API.download(songs, to=".", max_request=5)
-
-Download a list of songs (i.e from `search()` or `search_by_regex()`) to a directory (by default curdir).
-
-#### API.force_cache()
-
-Cache all systems preemptively.
-(No further caching will be done on further `API[system]` calls.)
-
-#### API.close()
-
-Close the current session.
-Any attempt to access/use the API object after it is closed is **strongly** discouraged.
+See [API.md](API.md).
 
 ## CLI
 
